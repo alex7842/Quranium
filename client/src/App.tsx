@@ -13,7 +13,7 @@ const App = () => {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [transactionId, setTransactionId] = useState<string>('');
   const [isTransactionId,setisTransactionId]=useState<boolean>(false);
-  const [selectedType,setSelectedType]=useState<string>('');
+  const [selectedType,setSelectedType]=useState<string>('1');
   const showToast = (message: string, type: 'success' | 'danger') => {
     setToast({ show: true, message, type });
   };
@@ -22,12 +22,13 @@ const App = () => {
     try {
       setServerStatus('connecting');
       setIsServerLoading(true);
-      const res = await fetch('http://localhost:3001/start-server', {
-        method: 'GET',
+      console.log("type frontend",selectedType);
+      const res = await fetch('http://localhost:3001/server/start-server', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ selectedType }),
+        body: JSON.stringify({ type: selectedType }),
       });
       console.log(res);
       const data: ResponseData = await res.json();
@@ -57,7 +58,7 @@ const App = () => {
     try {
       setIsTransactionLoading(true);
       setisTransactionId(false);
-      const res = await fetch('http://localhost:3001/send-funds', {
+      const res = await fetch('http://localhost:3001/wallet/send-funds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,7 +96,7 @@ const App = () => {
     setServerStatus('disconnected');
     setIsServerLoading(false);
     showToast('Server disconnected successfully', 'success');
-    const res = await fetch('http://localhost:3001/stopserver', {
+    const res = await fetch('http://localhost:3001/server/stop-server', {
      
     });
     const data = await res.json();
@@ -111,9 +112,10 @@ const App = () => {
           <div className="d-flex  gap-3 mb-4">
             <div className='flex-1 me-3 w-25'>
             <Form.Select
-            onChange={(e) => setSelectedType(e.target.value)}
+         onChange={(e) => setSelectedType(e.target.value)}
+
              aria-label="Default select example">
-      <option>Select</option>
+     
       <option value="1">Main</option>
       <option value="2">TestNet</option>
  
