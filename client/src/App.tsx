@@ -9,6 +9,8 @@ const App = () => {
   const [account, setAccount] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
   const [progress, setProgress] = useState<number>(0);
+  const [isTransactionToast, setIsTransactionToast] = useState(false);
+
   const [localBlocks, setLocalBlocks] = useState<number>(0);
   const [totalBlocks, setTotalBlocks] = useState<number>(0);
   const [isServerLoading, setIsServerLoading] = useState(false);
@@ -18,9 +20,20 @@ const App = () => {
   const [isTransactionId,setisTransactionId]=useState<boolean>(false);
   const [selectedType,setSelectedType]=useState<string>('2');
 
-  const showToast = (message: string, type: 'success' | 'danger') => {
-    setToast({ show: true, message, type });
-  };
+// Modify the showToast function
+const showToast = (message: string, type: 'success' | 'danger') => {
+  setToast({ show: true, message, type });
+};
+
+const copyTransactionId = () => {
+  navigator.clipboard.writeText(transactionId);
+  setToast({ show: false, message: '', type: 'success' });
+  setisTransactionId(false);
+  
+  // Show copy confirmation toast
+  showToast('Transaction ID copied!', 'success');
+};
+
   const startServer = async () => {
     try {
         setServerStatus('connecting');
@@ -57,7 +70,9 @@ const App = () => {
                 } else {
                     // Final sync complete
                     setServerStatus('connected');
-                    showToast('Blockchain fully synced!', 'success');
+                    setLocalBlocks(data.localBlocks);
+                    setTotalBlocks(data.totalBlocks);
+                    showToast('Blocks fully synced!', 'success');
                 }
             });
         }
@@ -79,26 +94,29 @@ const App = () => {
     try {
       setIsTransactionLoading(true);
       setisTransactionId(false);
+      setTransactionId("");
       const res = await fetch('http://localhost:3001/wallet/send-funds', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ account, amount }),
+        body: JSON.stringify({ account:account, amount:amount,type:selectedType }),
       });
+
       const data: ResponseData = await res.json();
+     // console.log(data);
       
       if (data.success) {
-        const txnId = `TXN${Math.random().toString(36).substr(2, 9)}`;
+        const txnId = `${data.data}`;
         setTransactionId(txnId);
         showToast('Transaction successful!', 'success');
         setisTransactionId(true);
         setAccount('');
         setAmount('');
       
-        setTimeout(() => {
-          setTransactionId('');
-        }, 3000);
+        // setTimeout(() => {
+        //   setTransactionId('');
+        // }, 3000);
       } else {
         showToast(`Transaction failed: ${data.message}`, 'danger');
       }
@@ -108,122 +126,186 @@ const App = () => {
       setIsTransactionLoading(false);
     }
   };
+  
 
-  const copyTransactionId = () => {
-    navigator.clipboard.writeText(transactionId);
-    showToast('Transaction ID copied!', 'success');
-  };
   const stopserver= async ()=>{
     setServerStatus('disconnected');
+    setisTransactionId(false);
     setIsServerLoading(false);
     showToast('Server disconnected successfully', 'success');
     const res = await fetch('http://localhost:3001/server/stop-server', {
      
     });
     const data = await res.json();
-    console.log(data);
+   // console.log(data);
     
   }
 
   return (
-    <div className="min-vh-100 bg-light d-flex align-items-center justify-content-center p-3">
-      <Card style={{ width: '100%', maxWidth: '400px', backgroundColor: '#f8f9fa', border: 'none', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}>
-        <Card.Header className="text-center border-0 bg-transparent pt-4">
-          <h4 className="mb-4">Quranium Client</h4>
+    <div className="min-vh-100 bg d-flex align-items-center justify-content-center p-3"
+    style={{ 
+      // backgroundColor: '#f0f0f0',
+      backgroundImage: 'url(./bitcoin.jpg)',
+      position: 'relative',
+      overflow: 'hidden' // Light red background
+    }}
+    >
+      {/* <div style={{ width: '100%', maxWidth: '400px', backgroundColor: 'red', border: 'none', boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)' }}> */}
+      <div 
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.2) 0%, transparent 100%)',
+      pointerEvents: 'none'
+    }}
+  />
+      <Card
+       style={{ 
+        width: '100%',
+        maxWidth: '400px',
+        background: 'rgba(251, 248, 248, 0.71)',
+        backdropFilter: 'blur(21px) saturate(173%)',
+        WebkitBackdropFilter: 'blur(21px) saturate(173%)',
+        border: '1px solid rgba(255, 255, 255, 0.18)',
+        borderRadius: '16px',
+        boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+        zIndex: 1
+      }}
+       >
+        <Card.Header className="text-center border-0  pt-4">
+        <div className='d-flex justify-content-center align-items-center gap-2 mb-4'>
+  <img 
+    src="./logobg.png" 
+    alt="Logo" 
+    style={{ width: '25px', height: '25px' }} 
+  />
+  <h4 className="m-0">Quranium Client</h4>
+</div>
           <div className="d-flex  gap-3 mb-4">
-            <div className='flex-1 me-3 w-25'>
+            <div className='flex-1 me-3 '
+            style={{width:"28%"}}>
             <Form.Select
+            style={{width:"100%",border:"1px solid black"}}
          onChange={(e) => setSelectedType(e.target.value)}
 
              aria-label="Default select example">
      
-      <option value="2">TestNet</option>
+      <option value="2">Testnet</option>
       <option value="1">Main</option>
  
     </Form.Select>
             </div>
             <button
-              onClick={startServer}
-              disabled={isServerLoading || serverStatus === 'connecting'}
-              className="btn flex-2  rounded-circle border border-1  border-black p-0 d-flex align-items-center justify-content-center"
-              style={{
-                width: '120px',
-                height: '120px',
-                backgroundColor: serverStatus === 'connected' ? '#4ADE80' : '#e9ecef',
-                border: 'none',
-                transition: 'all 0.3s ease',
-                boxShadow: serverStatus === 'connected' 
-                  ? '0 0 20px rgba(74, 222, 128, 0.4)' 
-                  : '0 4px 6px rgba(0, 0, 0, 0.1)',
-                position: 'relative',
-                overflow: 'hidden'
-              }}
-            >
-              {isServerLoading ? (
-                <div 
-                  className="position-relative"
-                  style={{
-                    width: '40px',
-                    height: '40px'
-                  }}
-                >
-                  <Loader2 
-                    size={40}
-                    className="animate-spin"
-                    style={{
-                      color: '#4ADE80',
-                      animation: 'spin 1s linear infinite'
-                    }}
-                  />
-                </div>
-              ) : (
-                <Power 
-                  size={40} 
-                  style={{ 
-                    color: serverStatus === 'connected' ? '#000' : '#666',
-                    opacity: serverStatus === 'connected' ? 1 : 0.7,
-                    strokeWidth: 2.5
-                  }} 
-                //  fill={serverStatus === 'connected' ? '#000' : 'transparent'}
-                />
-              )}
-            </button>
+  onClick={startServer}
+  disabled={isServerLoading || serverStatus === 'connecting'}
+  className="btn flex-2 rounded-circle p-0 d-flex align-items-center justify-content-center position-relative"
+  style={{
+    width: '120px',
+    height: '120px',
+    backgroundColor: serverStatus === 'connected' ? '#4ADE80' : '#ccc',
+    border: '2px solid #000',
+    borderBottom: '4px solid #000',
+    transition: 'all 0.3s ease',
+    boxShadow: serverStatus === 'connected' 
+      ? '0 0 20px rgba(103, 232, 22, 0.4)' 
+      : '0 6px 12px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-2px)',
+    overflow: 'visible',
+    position: 'relative',
+  }}
+>
+  {serverStatus === 'disconnected' && (
+    <span className=" fs-3">Start</span>
+  )}
+
+  {serverStatus === 'connecting' && (
+    <>
+      <div
+        className="position-absolute rotating-loader"
+        style={{
+          width: '140px',
+          height: '140px',
+          border: '4px solid transparent',
+          borderTop: '4px solid #4ADE80',
+          borderRadius: '50%',
+          animation: 'rotate 1.5s linear infinite',
+          top: '-10px',
+          left: '-10px',
+        }}
+      />
+      <div className="text-center">
+        {localBlocks && totalBlocks ? (
+          <div className="d-flex flex-column align-items-center">
+            <small className="fw-bold text-black">{localBlocks}/{totalBlocks}</small>
+            <small className="fw-bold text-black">Syncing...</small>
+          </div>
+        ) : (
+          <div className="pulse-effect">
+            Syncing
+          </div>
+        )}
+      </div>
+    </>
+  )}
+
+  {serverStatus === 'connected' && (
+    <Power
+      size={40}
+      style={{
+        color: '#000',
+        opacity: 1,
+        strokeWidth: 2.5,
+        animation: 'fadeIn 0.5s ease',
+      }}
+    />
+  )}
+</button>
+
           </div>
           
           <div 
-            className="text-center mb-3" 
+            className="text-center mb-2" 
             style={{ 
               color: serverStatus === 'connected' ? '#15803d' : '#666',
               fontSize: '1.1rem',
               fontWeight: 500
             }}
           >
-               {serverStatus === 'connecting' && (
-        <div className="progress mb-3">
-            <div 
-                className="progress-bar" 
-                role="progressbar"
-                style={{
-                    width: `${(localBlocks / totalBlocks) * 100}%`
-                }}
-            >
-                {progress}
-            </div>
-        </div>
+               {localBlocks>0 && totalBlocks>0 && (
+    
+          <div className='d-flex justify-content-end'>{ `${localBlocks} / ${totalBlocks} blocks`} </div>
+         
+       
     )}
-            {serverStatus === 'connected' ? 'Server is Connected' : 'Server not Connected'}
-          </div>
+     </div>
+     <div
+
+      className="text-center mb-2" 
+      style={{ 
+        color: serverStatus === 'connected' ? '#15803d' : '#666',
+        fontSize: '1.1rem',
+        fontWeight: 500
+      }}
+    >
+            {serverStatus === 'connected' ? `Server is Connected ${selectedType==='1'?"to Main":"to Testnet"}` : 'Server not Connected'}</div>
+         
           <div className='d-flex  justify-content-end mb-4'>
             <button 
               disabled={serverStatus !== 'connected'}
               style={{ 
                // cursor: serverStatus !== 'connected' ? 'not-allowed' : 'cursor-pointer',
                 backgroundColor: serverStatus === 'connected' ? '#E43637' : '#ccc',
+                color:serverStatus === 'connected' ? '#fff' : '#000'
               }}
               onClick={stopserver}
 
               
-            className='border border-1  border-black  p-1 text-white rounded-3'>Stop Server</button>
+            className='border border-1  border-black  p-1  rounded-3'
+         
+            >Stop Server</button>
 
           </div>
         </Card.Header>
@@ -293,7 +375,7 @@ const App = () => {
           </Form>
         </Card.Body>
       </Card>
-
+  
       <style>
         {`
           @keyframes spin {
@@ -304,18 +386,23 @@ const App = () => {
       </style>
 
       <ToastContainer position="top-end" className="p-3">
-        <Toast 
-          show={toast.show} 
-          onClose={()=>{
-             setToast({ ...toast, show: false })
-            setisTransactionId(false)
-          }}
-          bg={toast.type}
-          style={{
-            backgroundColor: toast.type === 'success' ? '#4ADE80' : '#ef4444',
-            color: '#fff'
-          }}
-        >
+      <Toast
+    show={toast.show}
+    onClose={() => {
+      setToast({ ...toast, show: false });
+      if (isTransactionId) {
+        setisTransactionId(false);
+      }
+    }}
+    autohide={!isTransactionId}
+    delay={3000}
+    bg={toast.type}
+    style={{
+      backgroundColor: toast.type === 'success' ? '#4ADE80' : '#ef4444',
+      color: '#fff'
+    }}
+  >
+
           <Toast.Header 
             style={{
               backgroundColor: toast.type === 'success' ? '#22c55e' : '#dc2626',
@@ -335,7 +422,7 @@ const App = () => {
             {toast.message}
             {isTransactionId && toast.type === 'success' && (
               <div className="mt-2">
-                <code className="bg-white text-dark px-2 py-1 rounded">{transactionId}</code>
+                <code className="bg-white text-dark px-2 py-1 rounded w-25 ">{transactionId}</code>
                 <Button
                   variant="light"
                   size="sm"

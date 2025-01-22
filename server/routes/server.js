@@ -6,16 +6,26 @@ const { config } = require('../config');
 
 
 let serverProcess = false;
+
+
+
 router.post('/start-server', async (req, res) => {
   console.log('Received request to start server');
+ 
   const { type } = req.body;
+ // console.log("type start server",type);
 
   if (!type || !config[type]) {
       return res.status(400).json({ success: false, message: 'Invalid server type' });
   }
+  
 
-  const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
    const data = config[type];
+  // const options = { cwd:data.PATH };
+   
+  const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
+   console.log(options)
+   //console.log(data);
   // First check if server is already running
   exec(data.checkCommand, options, (error, stdout, stderr) => {
       if (!error) {
@@ -36,7 +46,7 @@ router.post('/start-server', async (req, res) => {
       const startProcess = exec(data.startCommand, options);
 
       startProcess.stdout.on('data', (data) => {
-          console.log('Quranium Server starting...');
+         // console.log('Quranium Server starting...');
           console.log('Server Output:', data);
           serverProcess=true;
       });
@@ -54,11 +64,8 @@ router.post('/start-server', async (req, res) => {
 
       // Wait for server to start then begin polling
       setTimeout(() => {
-          console.log('Server started, beginning blockchain sync check...');
-          pollLocalBlocks({ 
-              checkCommand: 'quranium-cli.exe --testnet getblockchaininfo',
-              RPC_CHECK_URL: data.RPC_CHECK_URL 
-          }, options, res);
+         // console.log('Server started, beginning blocks sync check...');
+          pollLocalBlocks(data, options, res);
       }, 4000);
   });
 
@@ -97,10 +104,33 @@ const getTargetBlocks=async (data) => {
 };
 
 const pollLocalBlocks = async (data, options, res) => {
-  console.log('Starting blockchain polling...');
+  //console.log('Starting blockchain polling...');
+ // console.log(data);
   let isResponseSent = false;
 
-       const targetBlocks = await getTargetBlocks(data);
+  try {
+    // Get RPC block info once
+    const baseUrl = `http://${data.TEST_RPC_CHECK_URL_USER}:${data.TEST_RPC_CHECK_URL_PASSWORD}@${data.TEST_RPC_CHECK_URL_HOST}:${data.TEST_RPC_CHECK_URL_PORT}`
+  //  console.log('Base URL:', baseUrl);  
+    const rpcResponse = await axios.post(
+        baseUrl,
+        {
+            jsonrpc: '1.0',
+            id: 'curltext',
+            method: 'getblockchaininfo',
+            params: [],
+        },
+        {
+            auth: {
+                username: data.TEST_RPC_CHECK_URL_USER,
+                password: data.TEST_RPC_CHECK_URL_PASSWORD,
+            },
+            headers: { 'Content-Type': 'application/json' },
+        }
+    );
+
+    const rpcBlockInfo = rpcResponse.data.result;
+    const targetBlocks = rpcBlockInfo.blocks;
       console.log('Target RPC blocks:', targetBlocks);
 
       const syncInterval = setInterval(() => {
@@ -118,14 +148,14 @@ const pollLocalBlocks = async (data, options, res) => {
               }
 
               const localBlockInfo = JSON.parse(stdout.trim());
-              console.log('Local block info:', localBlockInfo);
+           //   console.log('Local block info:', localBlockInfo);
 
               if (localBlockInfo.blocks >= targetBlocks) {
-                  console.log('Blockchain is synced!');
+               //   console.log('Blocks synced!');
                   clearInterval(syncInterval);
                   if (!isResponseSent) {
                       isResponseSent = true;
-                      res.end(JSON.stringify({ success: true, syncing: false, message: 'Blockchain is fully synced!' }));
+                      res.end(JSON.stringify({ success: true, syncing: false, message: 'Blocks fully synced!',localBlocks:localBlockInfo.blocks,totalBlocks:targetBlocks }));
                   }
               } else {
                   const progress = `${localBlockInfo.blocks}/${targetBlocks}`;
@@ -152,32 +182,21 @@ const pollLocalBlocks = async (data, options, res) => {
           }
       }, 180000);
 
-//   } catch (rpcError) {
-//       console.error('RPC Error:', rpcError.message);
-//       if (!isResponseSent) {
-//           isResponseSent = true;
-//           res.end(JSON.stringify({ success: false, message: 'Failed to fetch RPC block details' }));
-//       }
-//   }
+   } catch (rpcError) {
+      console.error('RPC Error:', rpcError.message);
+      if (!isResponseSent) {
+          isResponseSent = true;
+          res.end(JSON.stringify({ success: false, message: 'Failed to fetch RPC block details' }));
+      }
+  }
 };
 
 
-
-router.get('/test-connection', (req, res) => {
-  const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
-  exec('quranium-cli.exe --version', options, (error, stdout, stderr) => {
-      res.json({
-          success: !error,
-          output: stdout,
-          error: error ? error.message : null,
-          stderr: stderr
-      });
-  });
-}); 
 router.get('/stop-server', async (req, res) => {
   console.log('Received request to stop server');
 
   const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
+  //const options = { cwd:data.PATH };
 
   // First try graceful shutdown
   exec('quranium-cli.exe --testnet stop', options, (error, stdout, stderr) => {
