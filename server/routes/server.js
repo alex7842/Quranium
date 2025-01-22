@@ -55,7 +55,7 @@ router.post('/start-server', async (req, res) => {
       // Wait for server to start then begin polling
       setTimeout(() => {
           console.log('Server started, beginning blockchain sync check...');
-          pollBlockchainInfo({ 
+          pollLocalBlocks({ 
               checkCommand: 'quranium-cli.exe --testnet getblockchaininfo',
               RPC_CHECK_URL: data.RPC_CHECK_URL 
           }, options, res);
@@ -64,31 +64,43 @@ router.post('/start-server', async (req, res) => {
 
 });
 
-const pollBlockchainInfo = async (data, options, res) => {
+const getTargetBlocks=async (data) => {
+    try {
+        // Get RPC block info once
+        const rpcResponse = await axios.post(
+            data.RPC_CHECK_URL,
+            {
+                jsonrpc: '1.0',
+                id: 'curltext',
+                method: 'getblockchaininfo',
+                params: [],
+            },
+            {
+                auth: {
+                    username: 'stagingqrnnode',
+                    password: 'qrnnode@123',
+                },
+                headers: { 'Content-Type': 'application/json' },
+            }
+        );
+  
+        const rpcBlockInfo = rpcResponse.data.result;
+        const targetBlocks = rpcBlockInfo.blocks;
+        return targetBlocks;
+    } catch (rpcError) {
+        console.error('RPC Error:', rpcError.message);
+        if (!isResponseSent) {
+            isResponseSent = true;
+            res.end(JSON.stringify({ success: false, message: 'Failed to fetch RPC block details' }));
+        }
+    }
+};
+
+const pollLocalBlocks = async (data, options, res) => {
   console.log('Starting blockchain polling...');
   let isResponseSent = false;
 
-  try {
-      // Get RPC block info once
-      const rpcResponse = await axios.post(
-          data.RPC_CHECK_URL,
-          {
-              jsonrpc: '1.0',
-              id: 'curltext',
-              method: 'getblockchaininfo',
-              params: [],
-          },
-          {
-              auth: {
-                  username: 'stagingqrnnode',
-                  password: 'qrnnode@123',
-              },
-              headers: { 'Content-Type': 'application/json' },
-          }
-      );
-
-      const rpcBlockInfo = rpcResponse.data.result;
-      const targetBlocks = rpcBlockInfo.blocks;
+       const targetBlocks = await getTargetBlocks(data);
       console.log('Target RPC blocks:', targetBlocks);
 
       const syncInterval = setInterval(() => {
@@ -140,13 +152,13 @@ const pollBlockchainInfo = async (data, options, res) => {
           }
       }, 180000);
 
-  } catch (rpcError) {
-      console.error('RPC Error:', rpcError.message);
-      if (!isResponseSent) {
-          isResponseSent = true;
-          res.end(JSON.stringify({ success: false, message: 'Failed to fetch RPC block details' }));
-      }
-  }
+//   } catch (rpcError) {
+//       console.error('RPC Error:', rpcError.message);
+//       if (!isResponseSent) {
+//           isResponseSent = true;
+//           res.end(JSON.stringify({ success: false, message: 'Failed to fetch RPC block details' }));
+//       }
+//   }
 };
 
 
