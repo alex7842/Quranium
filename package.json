@@ -5,6 +5,7 @@
   "scripts": {
     "frontend": "cd client && npm run dev",
     "backend": "cd server && node server.js",
+    "start":"concurrently \"npm run frontend\" \"npm run backend\"",
     "dev": "concurrently \"npm run frontend\" \"npm run backend\""
   },
   "keywords": [],

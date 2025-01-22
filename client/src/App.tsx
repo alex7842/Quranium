@@ -8,47 +8,68 @@ const App = () => {
   const [serverStatus, setServerStatus] = useState<'disconnected' | 'connecting' | 'connected'>('disconnected');
   const [account, setAccount] = useState<string>('');
   const [amount, setAmount] = useState<string>('');
+  const [progress, setProgress] = useState<number>(0);
+  const [localBlocks, setLocalBlocks] = useState<number>(0);
+  const [totalBlocks, setTotalBlocks] = useState<number>(0);
   const [isServerLoading, setIsServerLoading] = useState(false);
   const [isTransactionLoading, setIsTransactionLoading] = useState(false);
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [transactionId, setTransactionId] = useState<string>('');
   const [isTransactionId,setisTransactionId]=useState<boolean>(false);
-  const [selectedType,setSelectedType]=useState<string>('1');
+  const [selectedType,setSelectedType]=useState<string>('2');
+
   const showToast = (message: string, type: 'success' | 'danger') => {
     setToast({ show: true, message, type });
   };
-
   const startServer = async () => {
     try {
-      setServerStatus('connecting');
-      setIsServerLoading(true);
-      console.log("type frontend",selectedType);
-      const res = await fetch('http://localhost:3001/server/start-server', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ type: selectedType }),
-      });
-      console.log(res);
-      const data: ResponseData = await res.json();
-      
-      if (data.success) {
-      
-        setServerStatus('connected');
-        showToast('Server connected successfully', 'success');
-      } else {
-        setServerStatus('disconnected');
-        showToast(`Connection failed: ${data.message}`, 'danger');
-      }
-    } catch (error: any) {
-      setServerStatus('disconnected');
-      showToast(`Connection error: ${error.message}`, 'danger');
-    } finally {
-      setIsServerLoading(false);
-    }
-  };
+        setServerStatus('connecting');
+        setIsServerLoading(true);
+        
+        const response = await fetch('http://localhost:3001/server/start-server', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ type: selectedType }),
+        });
 
+        const reader = response.body?.getReader();
+        if (!reader) return;
+
+        // Read the streaming response
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            // Convert the chunk to text and parse JSON
+            const chunk = new TextDecoder().decode(value);
+            const updates = chunk.split('\n').filter(Boolean);
+
+            updates.forEach(update => {
+                const data = JSON.parse(update);
+                
+                if (data.syncing) {
+                    // Update progress in UI
+                    setProgress(data.progress);
+                    setLocalBlocks(data.localBlocks);
+                    setTotalBlocks(data.totalBlocks);
+                } else {
+                    // Final sync complete
+                    setServerStatus('connected');
+                    showToast('Blockchain fully synced!', 'success');
+                }
+            });
+        }
+    } catch (error: any) {
+        setServerStatus('disconnected');
+        showToast(`Connection error: ${error.message}`, 'danger');
+    } finally {
+        setIsServerLoading(false);
+    }
+};
+
+  
   const sendFunds = async () => {
     if (!account || !amount) {
       showToast('Please fill in all fields', 'danger');
@@ -116,8 +137,8 @@ const App = () => {
 
              aria-label="Default select example">
      
-      <option value="1">Main</option>
       <option value="2">TestNet</option>
+      <option value="1">Main</option>
  
     </Form.Select>
             </div>
@@ -177,6 +198,19 @@ const App = () => {
               fontWeight: 500
             }}
           >
+               {serverStatus === 'connecting' && (
+        <div className="progress mb-3">
+            <div 
+                className="progress-bar" 
+                role="progressbar"
+                style={{
+                    width: `${(localBlocks / totalBlocks) * 100}%`
+                }}
+            >
+                {progress}
+            </div>
+        </div>
+    )}
             {serverStatus === 'connected' ? 'Server is Connected' : 'Server not Connected'}
           </div>
           <div className='d-flex  justify-content-end mb-4'>
