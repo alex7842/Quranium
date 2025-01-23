@@ -21,10 +21,10 @@ router.post('/start-server', async (req, res) => {
   
 
    const data = config[type];
-  // const options = { cwd:data.PATH };
+   const options = { cwd:data.PATH };
    
-  const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
-   console.log(options)
+  //const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
+  // console.log(options)
    //console.log(data);
   // First check if server is already running
   exec(data.checkCommand, options, (error, stdout, stderr) => {
@@ -148,7 +148,7 @@ const pollLocalBlocks = async (data, options, res) => {
               }
 
               const localBlockInfo = JSON.parse(stdout.trim());
-           //   console.log('Local block info:', localBlockInfo);
+             console.log('Local block info:', localBlockInfo);
 
               if (localBlockInfo.blocks >= targetBlocks) {
                //   console.log('Blocks synced!');
@@ -195,8 +195,8 @@ const pollLocalBlocks = async (data, options, res) => {
 router.get('/stop-server', async (req, res) => {
   console.log('Received request to stop server');
 
-  const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
-  //const options = { cwd:data.PATH };
+  //const options = { cwd: 'A:\\Vlinder\\Uranium_cli\\bin' };
+  const options = { cwd:process.env.CLI_PATH };
 
   // First try graceful shutdown
   exec('quranium-cli.exe --testnet stop', options, (error, stdout, stderr) => {

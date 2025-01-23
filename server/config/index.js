@@ -17,7 +17,7 @@ dotenv.config();
         MAIN_WALLET_PORT: process.env.MAIN_WALLET_PORT,
         MAIN_WALLET_HOST: process.env.MAIN_WALLET_HOST,
         MAIN_WALLET_NAME: process.env.MAIN_WALLET_NAME,
-        PATH: process.env.PATH
+        PATH: process.env.CLI_PATH
 
 
     },
@@ -34,7 +34,7 @@ dotenv.config();
         TEST_WALLET_PORT: process.env.TEST_WALLET_PORT,
         TEST_WALLET_HOST: process.env.TEST_WALLET_HOST,
         TEST_WALLET_NAME: process.env.TEST_WALLET_NAME,
-        PATH: process.env.PATH
+        PATH: process.env.CLI_PATH
 
 
     }
