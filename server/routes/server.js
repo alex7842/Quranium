@@ -3,7 +3,7 @@ const { exec } = require('child_process');
 const axios = require('axios');
 const { config } = require('../config');
 
-
+const fs = require('fs');
 
 let serverProcess = false;
 
@@ -27,6 +27,19 @@ router.post('/start-server', async (req, res) => {
   // console.log(options)
    //console.log(data);
   // First check if server is already running
+
+
+
+//   const configPath = 'C:\\Users\\USER\\AppData\\Local\\Quranium\\quranium.conf';
+//     if (!fs.existsSync(configPath)) {
+//         const configContent = `
+// rpcuser=${data.TEST_RPC_CHECK_URL_USER}
+// rpcpassword=${data.TEST_RPC_CHECK_URL_PASSWORD}
+// server=1
+// testnet=1
+//         `;
+//         fs.writeFileSync(configPath, configContent.trim());
+//     }
   exec(data.checkCommand, options, (error, stdout, stderr) => {
       if (!error) {
           console.log('Server is already running and ready!');
@@ -110,8 +123,8 @@ const pollLocalBlocks = async (data, options, res) => {
 
   try {
     // Get RPC block info once
-    const baseUrl = `http://${data.TEST_RPC_CHECK_URL_USER}:${data.TEST_RPC_CHECK_URL_PASSWORD}@${data.TEST_RPC_CHECK_URL_HOST}:${data.TEST_RPC_CHECK_URL_PORT}`
-  //  console.log('Base URL:', baseUrl);  
+    const baseUrl = `http://${data.RPC_CHECK_URL_USER}:${data.RPC_CHECK_URL_PASSWORD}@${data.RPC_CHECK_URL_HOST}:${data.RPC_CHECK_URL_PORT}`
+  // console.log('Base URL:', baseUrl);  
     const rpcResponse = await axios.post(
         baseUrl,
         {
@@ -122,8 +135,8 @@ const pollLocalBlocks = async (data, options, res) => {
         },
         {
             auth: {
-                username: data.TEST_RPC_CHECK_URL_USER,
-                password: data.TEST_RPC_CHECK_URL_PASSWORD,
+                username: data.RPC_CHECK_URL_USER,
+                password: data.RPC_CHECK_URL_PASSWORD,
             },
             headers: { 'Content-Type': 'application/json' },
         }

@@ -10,11 +10,11 @@ router.post('/send-funds', async (req, res) => {
             return res.status(400).send({ success: false, message: 'Account and amount are required' });
         }
     
-        const url = `http://${data.TEST_WALLET_USER}:${data.TEST_WALLET_PASSWORD}@${data.TEST_WALLET_HOST}:${data.TEST_WALLET_PORT}/wallet/${data.TEST_WALLET_NAME}`;
+        const url = `http://${data.WALLET_USER}:${data.WALLET_PASSWORD}@${data.WALLET_HOST}:${data.WALLET_PORT}/wallet/${data.WALLET_NAME}`;
       //  console.log(url);
         const auth = {
-            username: data.TEST_WALLET_USER,
-            password:data.TEST_WALLET_PASSWORD
+            username: data.WALLET_USER,
+            password:data.WALLET_PASSWORD
         };
     
         const payload = {
